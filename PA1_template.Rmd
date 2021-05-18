@@ -73,7 +73,9 @@ with(df2,plot(x=interval,y=avg_steps,type="l",
 Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
 
 ```{r}
-df2%>%arrange(desc(avg_steps))
+df2%>%
+  arrange(desc(avg_steps))%>%
+  filter(avg_steps==max(avg_steps))
 ```
 
 
@@ -100,8 +102,8 @@ data.frame("Total_missing_vaues"=c(sum(is.na(backup$steps))))
 
 Devise a strategy for filling in all of the missing values in the dataset. 
 
-The strategy does not need to be sophisticated. 
-For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+1. As a first step take considaration of the possible imputation of the mean of the number of steps taken per day
 
 ```{r}
 require(dplyr)
@@ -113,6 +115,7 @@ ggplot(data=mean_by_date)+
   theme(axis.text.x = element_text(angle=90))
 ```
 
+2. Then consider the mean for the number of steps per 5-minute interval, and decide to use this option
 
 ```{r}
 mean_by_5min<-backup%>%
@@ -125,6 +128,7 @@ ggplot(data=mean_by_5min)+
   theme(axis.text.x = element_text(angle=90))
 ```
 
+Here is the result of the filled column of the number of steps taken per day.
 
 ```{r}
 require(zoo)
@@ -160,6 +164,7 @@ hist(df_filled_by_day$tot_steps,breaks=30,
      xlab="Total Steps")
 ```
 
+The two histogram togeter to visualize the differences.
 
 ```{r}
 par(mfrow=c(1,2))
@@ -193,21 +198,48 @@ my_table
 
 What is the impact of imputing missing data on the estimates of the total daily number of steps?
 
-```{r}
+The mean values are the same while the median slightly changed with a difference impact of 0.03%
 
+```{r}
+(my_table[1,2]-my_table[2,2])/my_table[1,2]*100
 ```
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
-For this part the \color{red}{\verb|weekdays()|}weekdays() function may be of some help here. Use the dataset with the filled-in missing values for this part.
+Use the dataset with the filled-in missing values, the \color{red}{\verb|weekdays()|}weekdays() function to create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+
+```{r}
+# ?weekday
+weekend<-c("Friday","Saturday","Sunday")
+my_df<-df_filled%>%mutate(date=as.Date(date,"%Y-%m-%d"),
+                   day0=weekdays(date),
+                   day=ifelse(weekdays(date)%in%weekend,"weekend","weekday"))
+
+plyr::count(my_df$day)
+```
 
 
-Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+Make a panel plot containing a time series plot (i.e. \color{red}{\verb|type = "l"|}type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). 
+
+```{r}
+s<-my_df %>%
+  group_by(day,interval) %>%
+  summarize(avg_steps=mean(steps)) %>%
+  ungroup() 
+
+library(lattice)
+
+with(s, xyplot(avg_steps~interval | day, 
+               type="l",col="blue",
+               groups=day,
+               layout = c(1,2),
+               xlab="5-minute interval",
+               ylab="Average number of steps",
+               main="Day Panel Plot of the avg steps per 5-minute interval")
+)
 
 
-
-Make a panel plot containing a time series plot (i.e. \color{red}{\verb|type = "l"|}type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
-
+```
 
 
 
